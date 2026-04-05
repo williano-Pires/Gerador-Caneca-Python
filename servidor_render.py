@@ -10,7 +10,7 @@ CORS(app) # Isso permite que o seu site no Blogger envie dados para o seu PC
 # ==========================================================
 # CONFIGURAÇÕES - VERIFIQUE SE O CAMINHO DO BLENDER ESTÁ CORRETO
 # ==========================================================
-BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 4.0\blender.exe"
+BLENDER_PATH = r"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"
 PASTA_PROJETO = os.path.dirname(os.path.abspath(__file__))
 ARQUIVO_BLEND = "Caneca Teste.blend" # Nome exato do seu arquivo na pasta
 ARQUIVO_MOTOR = "render_caneca.py"   # Nome do seu script de render
