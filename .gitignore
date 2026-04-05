@@ -1,0 +1,16 @@
+# Vídeos gerados
+*.mp4
+*.webm
+
+# Imagens temporárias recebidas do site
+arte_recebida.png
+arte_teste.png
+
+# Arquivos de backup do Blender
+*.blend1
+*.blend2
+
+# Pastas de ambiente virtual do Python
+__pycache__/
+venv/
+.env
