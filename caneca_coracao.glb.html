@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador 3D — Caneca Alça de Coração (.GLB)</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #11161d; color: #f1f5f9; }
+    .app { display: flex; width: 100vw; height: 100dvh; }
+
+    #viewport {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #ffffff 0%, #eaeaea 50%, #c8c8c8 100%);
+      overflow: hidden;
+    }
+
+    .hud-top {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(15, 23, 42, 0.8);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .sidebar {
+      width: 360px;
+      background: #161b22;
+      border-left: 1px solid rgba(255,255,255,0.08);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: #1f2630;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .card h3 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #93c5fd;
+    }
+
+    .colors-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .color-box {
+      background: #131820;
+      padding: 8px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,0.08);
+      text-align: center;
+    }
+
+    .color-box small { display: block; font-size: 11px; color: #cbd5e1; margin-bottom: 5px; }
+    .color-box input[type="color"] { width: 100%; height: 32px; border: none; background: none; cursor: pointer; }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      color: #fff;
+      transition: filter 0.2s ease;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-export { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 20px rgba(16,185,129,0.3); }
+    .btn-upload { background: #f59e0b; color: #111; display: block; text-align: center; }
+    .btn-clear  { background: #334155; margin-top: 8px; padding: 8px; font-size: 12px; }
+
+    .row-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .slider-row { margin-top: 10px; }
+    .slider-row label { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; }
+    .slider-row input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+
+    .note {
+      font-size: 11.5px;
+      color: #94a3b8;
+      line-height: 1.45;
+      margin: 8px 0 0;
+    }
+
+    @media (max-width: 820px) {
+      .app { flex-direction: column; }
+      #viewport { height: 55%; }
+      .sidebar { width: 100%; height: 45%; border-left: none; border-top: 1px solid rgba(255,255,255,0.1); }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+<div class="app">
+  <div id="viewport">
+    <div class="hud-top">❤️ Caneca Alça de Coração 3D — Preview & Exportador GLB</div>
+  </div>
+
+  <aside class="sidebar">
+    <!-- EXPORTAR GLB -->
+    <div class="card" style="border-color: rgba(16,185,129,0.45);">
+      <h3 style="color: #34d399;">📦 Exportar para GitHub / Blogger</h3>
+      <label class="row-check">
+        <input type="checkbox" id="opt-base" checked>
+        Incluir Base de Apoio (<code>cor_base</code>)
+      </label>
+      <label class="row-check">
+        <input type="checkbox" id="opt-clean-export" checked>
+        Exportar limpa (sem estampa de teste)
+      </label>
+      <button id="btn-export-glb" class="btn btn-export">⬇️ Baixar caneca_coracao.glb</button>
+      <p class="note">
+        Exporta com os nomes exatos do seu Blogger: <b>cor_interna</b> (interno + alça coração), <b>cor_caneca</b>, <b>cor_arte</b> (com UV de sublimação) e <b>cor_base</b>.
+      </p>
+    </div>
+
+    <!-- TESTAR ARTE -->
+    <div class="card">
+      <h3>🎨 Testar Arte (Sublimação)</h3>
+      <label for="upload-arte" class="btn btn-upload">📂 Carregar Imagem de Teste</label>
+      <input type="file" id="upload-arte" accept="image/*" style="display:none;">
+      <button id="btn-limpar-arte" class="btn btn-clear">Remover Arte de Teste</button>
+    </div>
+
+    <!-- CORES -->
+    <div class="card">
+      <h3>🖌️ Cores dos Materiais</h3>
+      <div class="colors-grid">
+        <div class="color-box">
+          <small>Interno / Alça Coração</small>
+          <input type="color" id="col-interna" value="#1a1a1a">
+        </div>
+        <div class="color-box">
+          <small>Corpo Externo</small>
+          <input type="color" id="col-caneca" value="#ffffff">
+        </div>
+        <div class="color-box">
+          <small>Fundo da Arte</small>
+          <input type="color" id="col-arte" value="#ffffff">
+        </div>
+        <div class="color-box">
+          <small>Base de Apoio</small>
+          <input type="color" id="col-base" value="#f5f5f5">
+        </div>
+      </div>
+    </div>
+
+    <!-- METALIZADO -->
+    <div class="card">
+      <h3>✨ Acabamento / Metalizado</h3>
+      <label class="row-check">
+        <input type="checkbox" id="chk-metal">
+        Ativar Efeito Metalizado (Cromado)
+      </label>
+      <div class="slider-row">
+        <label><span>Metalizado</span><span id="lbl-metal">0.08</span></label>
+        <input type="range" id="rng-metal" min="0" max="1" step="0.05" value="1.0" disabled>
+      </div>
+      <div class="slider-row">
+        <label><span>Rugosidade (Brilho vs Fosco)</span><span id="lbl-rough">0.18</span></label>
+        <input type="range" id="rng-rough" min="0.05" max="1" step="0.05" value="0.15" disabled>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+  import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+  // ================= CENA E RENDERER =================
+  const viewport = document.getElementById('viewport');
+  const scene = new THREE.Scene();
+
+  const camera = new THREE.PerspectiveCamera(32, viewport.clientWidth / viewport.clientHeight, 0.01, 10);
+  camera.position.set(0.05, 0.115, 0.255);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  viewport.appendChild(renderer.domElement);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.target.set(0.01, 0.052, 0);
+  controls.update();
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+  keyLight.position.set(0.3, 0.5, 0.4);
+  keyLight.castShadow = true;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  fillLight.position.set(-0.4, 0.2, -0.3);
+  scene.add(fillLight);
+
+  // ================= TEXTURA BASE BRANCA (OBRIGATÓRIA P/ MODEL-VIEWER) =================
+  function createBlankWhiteTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  const blankTexture = createBlankWhiteTexture();
+  let currentArtTexture = null;
+
+  // ================= MATERIAIS (NOMES EXATOS DO BLOGGER) =================
+  const matInterna = new THREE.MeshStandardMaterial({
+    name: 'cor_interna',
+    color: new THREE.Color('#1a1a1a'),
+    metalness: 0.08,
+    roughness: 0.16
+  });
+
+  const matCaneca = new THREE.MeshStandardMaterial({
+    name: 'cor_caneca',
+    color: new THREE.Color('#ffffff'),
+    metalness: 0.08,
+    roughness: 0.16
+  });
+
+  const matArte = new THREE.MeshStandardMaterial({
+    name: 'cor_arte',
+    color: new THREE.Color('#ffffff'),
+    map: blankTexture,
+    metalness: 0.08,
+    roughness: 0.16
+  });
+
+  const matBase = new THREE.MeshStandardMaterial({
+    name: 'cor_base',
+    color: new THREE.Color('#f5f5f5'),
+    metalness: 0.05,
+    roughness: 0.35
+  });
+
+  // ================= CONSTRUÇÃO DA CANECA ALÇA DE CORAÇÃO =================
+  const mugRoot = new THREE.Group();
+  mugRoot.name = 'Caneca_Alca_Coracao';
+
+  // Medidas reais de uma caneca 325ml (em metros)
+  const R_OUT = 0.0410;   // 8,2 cm de diâmetro externo
+  const H     = 0.0950;   // 9,5 cm de altura
+  const WALL  = 0.0038;   // 3,8 mm de espessura da cerâmica
+  const R_IN  = R_OUT - WALL;
+  const BOT   = 0.0075;   // fundo interno
+  const BASE_H = 0.0135;  // altura da base de apoio
+  const SEG_RADIAL = 96;
+
+  // Grupo da caneca apoiada exatamente sobre a base
+  const mugBodyGroup = new THREE.Group();
+  mugBodyGroup.position.y = BASE_H;
+  mugRoot.add(mugBodyGroup);
+
+  // 1) CORPO EXTERNO (cor_caneca)
+  function buildOuterShell() {
+    const pts = [];
+    // Fundo externo levemente recuado (anel de apoio de cerâmica)
+    pts.push(new THREE.Vector2(0.0001, 0.0014));
+    pts.push(new THREE.Vector2(0.0320, 0.0014));
+    pts.push(new THREE.Vector2(0.0335, 0.0000));
+    pts.push(new THREE.Vector2(0.0368, 0.0000));
+
+    // Curva inferior suave até a parede lateral
+    const botSteps = 10;
+    const rBot = R_OUT - 0.0368;
+    for (let i = 1; i <= botSteps; i++) {
+      const a = -Math.PI / 2 + (i / botSteps) * (Math.PI / 2);
+      pts.push(new THREE.Vector2(0.0368 + Math.cos(a) * rBot, rBot + Math.sin(a) * rBot));
+    }
+
+    // Parede externa reta até o início do arredondamento da borda
+    const rimR = WALL * 0.5;
+    const rimCenterX = R_OUT - rimR;
+    const rimCenterY = H - rimR;
+    pts.push(new THREE.Vector2(R_OUT, rimCenterY));
+
+    // Metade externa da borda arredondada (até o topo exato)
+    const rimSteps = 8;
+    for (let i = 1; i <= rimSteps; i++) {
+      const a = (i / rimSteps) * (Math.PI / 2);
+      pts.push(new THREE.Vector2(rimCenterX + Math.cos(a) * rimR, rimCenterY + Math.sin(a) * rimR));
+    }
+
+    const geo = new THREE.LatheGeometry(pts, SEG_RADIAL);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, matCaneca);
+    mesh.name = 'Corpo_Externo';
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  // 2) INTERIOR DA CANECA (cor_interna)
+  function buildInnerShell() {
+    const pts = [];
+    const rimR = WALL * 0.5;
+    const rimCenterX = R_OUT - rimR;
+    const rimCenterY = H - rimR;
+
+    // Continua do topo exato da borda arredondada para o lado interno
+    const rimSteps = 8;
+    for (let i = 0; i <= rimSteps; i++) {
+      const a = Math.PI / 2 + (i / rimSteps) * (Math.PI / 2);
+      pts.push(new THREE.Vector2(rimCenterX + Math.cos(a) * rimR, rimCenterY + Math.sin(a) * rimR));
+    }
+
+    // Parede interna descendo até o canto inferior interno
+    const innerFillet = 0.0065;
+    pts.push(new THREE.Vector2(R_IN, BOT + innerFillet));
+
+    // Curva suave do fundo interno
+    const filSteps = 10;
+    for (let i = 1; i <= filSteps; i++) {
+      const a = -(i / filSteps) * (Math.PI / 2);
+      pts.push(new THREE.Vector2(
+        (R_IN - innerFillet) + Math.cos(a) * innerFillet,
+        (BOT + innerFillet) + Math.sin(a) * innerFillet
+      ));
+    }
+
+    // Centro do fundo interno
+    pts.push(new THREE.Vector2(0.0001, BOT));
+
+    const geo = new THREE.LatheGeometry(pts, SEG_RADIAL);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, matInterna);
+    mesh.name = 'Interior_Caneca';
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  // 3) FAIXA DE SUBLIMAÇÃO / ESTAMPA (cor_arte)
+  function buildArtSleeve() {
+    // 20,5 cm de área útil na circunferência de 25,76 cm (~287 graus), deixando margem limpa perto da alça (+X)
+    const thetaLength = 5.02;
+    const gap = Math.PI * 2 - thetaLength;
+    const thetaStart = Math.PI / 2 + gap / 2;
+
+    const artHeight = H - 0.0072; // deixa 3,6 mm de cerâmica limpa no topo e base
+    const geo = new THREE.CylinderGeometry(
+      R_OUT + 0.00018,
+      R_OUT + 0.00018,
+      artHeight,
+      SEG_RADIAL,
+      1,
+      true,
+      thetaStart,
+      thetaLength
+    );
+
+    const mesh = new THREE.Mesh(geo, matArte);
+    mesh.name = 'Area_Arte';
+    mesh.position.y = H / 2 + 0.0004;
+    return mesh;
+  }
+
+  // 4) ALÇA EM FORMATO DE CORAÇÃO (cor_interna) — FIEL À FOTO
+  function buildHeartHandle() {
+    // Curva no plano XY (z = 0), esculpida conforme a silhueta da alça de coração
+    const controlPts = [
+      new THREE.Vector3(0.0365, 0.0680, 0), // Encaixe superior dentro da parede
+      new THREE.Vector3(0.0448, 0.0722, 0), // Saída superior subindo suave
+      new THREE.Vector3(0.0528, 0.0708, 0), // Topo do lóbulo superior
+      new THREE.Vector3(0.0562, 0.0638, 0), // Descida para a dobra do coração
+      new THREE.Vector3(0.0560, 0.0578, 0), // Vinco / curva central do coração
+      new THREE.Vector3(0.0652, 0.0592, 0), // Saída para o lóbulo direito
+      new THREE.Vector3(0.0748, 0.0545, 0), // Ombro do lóbulo externo
+      new THREE.Vector3(0.0762, 0.0442, 0), // Extremidade direita da alça
+      new THREE.Vector3(0.0702, 0.0332, 0), // Curva inferior do coração
+      new THREE.Vector3(0.0590, 0.0252, 0), // Retorno suave para a caneca
+      new THREE.Vector3(0.0465, 0.0222, 0), // Pescoço inferior
+      new THREE.Vector3(0.0365, 0.0215, 0)  // Encaixe inferior dentro da parede
+    ];
+
+    const curve = new THREE.CatmullRomCurve3(controlPts, false, 'centripetal', 0.45);
+    const tubularSegments = 120;
+    const radialSegments = 28;
+
+    const positions = [];
+    const uvs = [];
+    const indices = [];
+
+    for (let i = 0; i <= tubularSegments; i++) {
+      const t = i / tubularSegments;
+      const center = curve.getPointAt(t);
+      const tangent = curve.getTangentAt(t).normalize();
+
+      // Normal no plano XY (sem torção de Frenet)
+      const normal = new THREE.Vector3(-tangent.y, tangent.x, 0).normalize();
+      const binormal = new THREE.Vector3(0, 0, 1);
+
+      // Perfil anatômico da cerâmica: mais largo nas junções com a caneca e levemente refinado no vinco
+      const endFlare = Math.pow(Math.max(0, 1 - t / 0.11), 2) * 0.0020 +
+                       Math.pow(Math.max(0, (t - 0.89) / 0.11), 2) * 0.0020;
+      const cleftPinch = Math.exp(-Math.pow((t - 0.32) / 0.06, 2)) * 0.0005;
+
+      const rx = 0.0044 + endFlare - cleftPinch; // espessura no plano XY
+      const rz = 0.0072 + endFlare * 0.8;       // largura frontal (eixo Z)
+
+      for (let j = 0; j <= radialSegments; j++) {
+        const angle = (j / radialSegments) * Math.PI * 2;
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+
+        // Super-elipse suave (n = 2.3) para dar o brilho contínuo de alça cerâmica real
+        const sx = Math.sign(c) * Math.pow(Math.abs(c), 0.88);
+        const sz = Math.sign(s) * Math.pow(Math.abs(s), 0.88);
+
+        const vx = center.x + normal.x * (rx * sx) + binormal.x * (rz * sz);
+        const vy = center.y + normal.y * (rx * sx) + binormal.y * (rz * sz);
+        const vz = center.z + normal.z * (rx * sx) + binormal.z * (rz * sz);
+
+        positions.push(vx, vy, vz);
+        uvs.push(t, j / radialSegments);
+      }
+    }
+
+    const ringStride = radialSegments + 1;
+    for (let i = 0; i < tubularSegments; i++) {
+      for (let j = 0; j < radialSegments; j++) {
+        const v00 = i * ringStride + j;
+        const v10 = (i + 1) * ringStride + j;
+        const v01 = i * ringStride + (j + 1);
+        const v11 = (i + 1) * ringStride + (j + 1);
+        indices.push(v00, v01, v10);
+        indices.push(v10, v01, v11);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+
+    const mesh = new THREE.Mesh(geo, matInterna);
+    mesh.name = 'Alca_Coracao';
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  // 5) BASE DE APOIO (cor_base)
+  function buildPedestalBase() {
+    const rBase = 0.056;
+    const bevel = 0.0022;
+    const pts = [
+      new THREE.Vector2(0.0001, 0),
+      new THREE.Vector2(rBase - bevel, 0),
+      new THREE.Vector2(rBase, bevel),
+      new THREE.Vector2(rBase, BASE_H - bevel),
+      new THREE.Vector2(rBase - bevel, BASE_H),
+      new THREE.Vector2(0.0001, BASE_H)
+    ];
+    const geo = new THREE.LatheGeometry(pts, 72);
+    geo.computeVertexNormals();
+    const mesh = new THREE.Mesh(geo, matBase);
+    mesh.name = 'Base_Apoio';
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
+  const outerMesh  = buildOuterShell();
+  const innerMesh  = buildInnerShell();
+  const artMesh    = buildArtSleeve();
+  const handleMesh = buildHeartHandle();
+  const baseMesh   = buildPedestalBase();
+
+  mugBodyGroup.add(outerMesh, innerMesh, artMesh, handleMesh);
+  mugRoot.add(baseMesh);
+  scene.add(mugRoot);
+
+  // ================= INTERAÇÕES DO PREVIEW =================
+  document.getElementById('col-interna').oninput = (e) => matInterna.color.set(e.target.value);
+  document.getElementById('col-caneca').oninput  = (e) => matCaneca.color.set(e.target.value);
+  document.getElementById('col-arte').oninput    = (e) => matArte.color.set(e.target.value);
+  document.getElementById('col-base').oninput    = (e) => matBase.color.set(e.target.value);
+
+  document.getElementById('opt-base').onchange = (e) => {
+    baseMesh.visible = e.target.checked;
+    mugBodyGroup.position.y = e.target.checked ? BASE_H : 0;
+  };
+
+  function updateMetallic() {
+    const active = document.getElementById('chk-metal').checked;
+    const mVal = parseFloat(document.getElementById('rng-metal').value);
+    const rVal = parseFloat(document.getElementById('rng-rough').value);
+
+    document.getElementById('rng-metal').disabled = !active;
+    document.getElementById('rng-rough').disabled = !active;
+    document.getElementById('lbl-metal').innerText = (active ? mVal : 0.08).toFixed(2);
+    document.getElementById('lbl-rough').innerText = (active ? rVal : 0.16).toFixed(2);
+
+    [matInterna, matCaneca, matArte].forEach(mat => {
+      mat.metalness = active ? mVal : 0.08;
+      mat.roughness = active ? rVal : 0.16;
+      mat.needsUpdate = true;
+    });
+  }
+
+  document.getElementById('chk-metal').onchange = updateMetallic;
+  document.getElementById('rng-metal').oninput  = updateMetallic;
+  document.getElementById('rng-rough').oninput  = updateMetallic;
+
+  // Upload de arte para teste
+  document.getElementById('upload-arte').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    new THREE.TextureLoader().load(url, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      if (currentArtTexture) currentArtTexture.dispose();
+      currentArtTexture = tex;
+      matArte.map = tex;
+      matArte.needsUpdate = true;
+    });
+  };
+
+  document.getElementById('btn-limpar-arte').onclick = () => {
+    matArte.map = blankTexture;
+    matArte.needsUpdate = true;
+    document.getElementById('upload-arte').value = '';
+  };
+
+  // ================= EXPORTAÇÃO DO ARQUIVO .GLB =================
+  document.getElementById('btn-export-glb').onclick = () => {
+    const btn = document.getElementById('btn-export-glb');
+    btn.innerText = '⏳ Gerando arquivo .GLB...';
+
+    const cleanExport = document.getElementById('opt-clean-export').checked;
+    const savedMap = matArte.map;
+    if (cleanExport) {
+      matArte.map = blankTexture;
+      matArte.needsUpdate = true;
+    }
+
+    const exporter = new GLTFExporter();
+    exporter.parse(
+      mugRoot,
+      (result) => {
+        // Restaura textura de preview se necessário
+        if (cleanExport) {
+          matArte.map = savedMap;
+          matArte.needsUpdate = true;
+        }
+
+        const blob = new Blob([result], { type: 'model/gltf-binary' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'caneca_coracao.glb';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+        btn.innerText = '✅ caneca_coracao.glb Baixado!';
+        setTimeout(() => { btn.innerText = '⬇️ Baixar caneca_coracao.glb'; }, 3000);
+      },
+      (err) => {
+        console.error('Erro ao exportar GLB:', err);
+        alert('Erro ao exportar o arquivo .glb.');
+        btn.innerText = '⬇️ Baixar caneca_coracao.glb';
+      },
+      { binary: true, onlyVisible: true }
+    );
+  };
+
+  // ================= LOOP E RESIZE =================
+  window.addEventListener('resize', () => {
+    camera.aspect = viewport.clientWidth / viewport.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>
